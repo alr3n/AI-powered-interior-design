@@ -65,12 +65,25 @@ class GeminiClient {
               options: HttpsCallableOptions(
                   timeout: const Duration(seconds: 120)))
           .call<dynamic>(payload);
-      return Map<String, dynamic>.from(result.data as Map);
+      return _deepConvert(result.data) as Map<String, dynamic>;
     } on FirebaseFunctionsException catch (e) {
       throw mapFunctionsError('${e.code} ${e.message}');
     } catch (e) {
       throw mapFunctionsError(e);
     }
+  }
+
+  /// Mobile platform channels decode nested JSON as `Map<Object?, Object?>` /
+  /// `List<Object?>`, not the `Map<String, dynamic>` the model factories
+  /// expect — recursively normalize before any `as Map<String, dynamic>` cast.
+  dynamic _deepConvert(dynamic value) {
+    if (value is Map) {
+      return value.map((k, v) => MapEntry(k.toString(), _deepConvert(v)));
+    }
+    if (value is List) {
+      return value.map(_deepConvert).toList();
+    }
+    return value;
   }
 }
 
