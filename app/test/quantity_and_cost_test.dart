@@ -3,19 +3,18 @@ import 'package:spacesense_ai/features/cost/domain/cost_estimator.dart';
 import 'package:spacesense_ai/features/quantities/domain/quantity_calculator.dart';
 import 'package:spacesense_ai/models/room_model.dart';
 
-RoomModel _room() => RoomModel(
+RoomModel _room() => const RoomModel(
       id: 'v1',
       projectId: 'p1',
       version: 1,
       roomType: 'bedroom',
       dimensionSource: DimensionSource.manual,
-      dimensions:
-          const RoomDimensions(lengthM: 4.2, widthM: 3.5, heightM: 2.7),
-      openings: const [
+      dimensions: RoomDimensions(lengthM: 4.2, widthM: 3.5, heightM: 2.7),
+      openings: [
         Opening(type: 'door', widthM: 0.9, heightM: 2.1),
         Opening(type: 'window', widthM: 1.5, heightM: 1.2),
       ],
-      furniture: const [
+      furniture: [
         FurnitureItem(
             category: 'bed', label: 'Queen bed', lengthM: 2.0, widthM: 1.5),
       ],

@@ -36,7 +36,7 @@ class PdfReportService {
       build: (context) => [
         // ---- Header --------------------------------------------------
         pw.Text(projectName,
-            style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            style: const pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
         pw.Text(
             'Room analysis report · ${DateFormat.yMMMMd().format(DateTime.now())}',
             style: const pw.TextStyle(color: PdfColors.grey700)),
@@ -135,7 +135,7 @@ class PdfReportService {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text(d.style,
-                        style: pw.TextStyle(
+                        style: const pw.TextStyle(
                             fontSize: 13, fontWeight: pw.FontWeight.bold)),
                     pw.Text(d.mood, style: const pw.TextStyle(fontSize: 10)),
                     pw.Row(
@@ -171,13 +171,13 @@ class PdfReportService {
   pw.Widget _h(String text) => pw.Padding(
         padding: const pw.EdgeInsets.only(top: 14, bottom: 6),
         child: pw.Text(text,
-            style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
+            style: const pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
       );
 
   pw.Widget _h2(String text) => pw.Padding(
         padding: const pw.EdgeInsets.only(top: 8, bottom: 3),
         child: pw.Text(text,
-            style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+            style: const pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
       );
 
   pw.Widget _bullet(String text, {bool box = false}) => pw.Padding(
@@ -192,7 +192,7 @@ class PdfReportService {
         headerCount: header ? 1 : 0,
         cellStyle: const pw.TextStyle(fontSize: 9),
         headerStyle:
-            pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+            const pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
         border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
         cellPadding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       );
