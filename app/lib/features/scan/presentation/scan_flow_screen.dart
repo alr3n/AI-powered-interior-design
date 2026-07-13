@@ -204,7 +204,7 @@ class _FinishScanViewState extends ConsumerState<_FinishScanView> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _roomType,
+              initialValue: _roomType,
               decoration: const InputDecoration(labelText: 'Room type'),
               items: AppConstants.roomTypes
                   .map((t) => DropdownMenuItem(value: t, child: Text(t)))
