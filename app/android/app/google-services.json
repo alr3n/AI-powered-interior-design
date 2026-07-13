@@ -1,0 +1,69 @@
+{
+  "project_info": {
+    "project_number": "503424929660",
+    "firebase_url": "https://spacesense-ai-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "spacesense-ai",
+    "storage_bucket": "spacesense-ai.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503424929660:android:0912ae88990411e3151ef9",
+        "android_client_info": {
+          "package_name": "com.spacesense.ai.spacesense_ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "503424929660-426t7o7v0uiu80loq9ju4jis2ggpc0k6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcRKWsp6UCUnDvqV18OVXt01_xHnI2q8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "503424929660-426t7o7v0uiu80loq9ju4jis2ggpc0k6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:503424929660:android:1729dd1344e3f9d5151ef9",
+        "android_client_info": {
+          "package_name": "spacesense.ai"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "503424929660-426t7o7v0uiu80loq9ju4jis2ggpc0k6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcRKWsp6UCUnDvqV18OVXt01_xHnI2q8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "503424929660-426t7o7v0uiu80loq9ju4jis2ggpc0k6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
