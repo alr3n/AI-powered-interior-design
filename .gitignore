@@ -1,0 +1,17 @@
+# Node / Firebase Functions
+functions/node_modules/
+functions/lib/
+functions/.env
+functions/*.log
+firebase-debug.log
+firebase-debug.*.log
+.firebase/
+
+# Editors
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
