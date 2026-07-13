@@ -26,7 +26,7 @@ class AppTheme {
       textTheme: text,
       scaffoldBackgroundColor:
           brightness == Brightness.light ? const Color(0xFFF7F6F3) : null,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         color: scheme.surfaceContainerLow,
