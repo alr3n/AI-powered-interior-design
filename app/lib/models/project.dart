@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class Project {
   const Project({
     required this.id,
@@ -21,27 +19,17 @@ class Project {
   final bool isFavorite;
   final DateTime? updatedAt;
 
-  Map<String, dynamic> toJson() => {
-        'ownerId': ownerId,
-        'name': name,
-        'roomType': roomType,
-        'status': status,
-        if (coverPhotoUrl != null) 'coverPhotoUrl': coverPhotoUrl,
-        'isFavorite': isFavorite,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-  factory Project.fromDoc(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final j = doc.data() ?? {};
+  /// Row of the `projects` table (snake_case columns).
+  factory Project.fromRow(Map<String, dynamic> j) {
     return Project(
-      id: doc.id,
-      ownerId: j['ownerId'] as String? ?? '',
+      id: j['id'] as String,
+      ownerId: j['owner_id'] as String? ?? '',
       name: j['name'] as String? ?? 'Untitled',
-      roomType: j['roomType'] as String? ?? 'other',
+      roomType: j['room_type'] as String? ?? 'other',
       status: j['status'] as String? ?? 'scanned',
-      coverPhotoUrl: j['coverPhotoUrl'] as String?,
-      isFavorite: j['isFavorite'] as bool? ?? false,
-      updatedAt: (j['updatedAt'] as Timestamp?)?.toDate(),
+      coverPhotoUrl: j['cover_photo_url'] as String?,
+      isFavorite: j['is_favorite'] as bool? ?? false,
+      updatedAt: DateTime.tryParse(j['updated_at'] as String? ?? '')?.toLocal(),
     );
   }
 }

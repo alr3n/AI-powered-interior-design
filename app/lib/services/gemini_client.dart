@@ -1,29 +1,30 @@
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/errors/failures.dart';
 import '../models/analysis_result.dart';
 import '../models/design_concept.dart';
 import '../models/room_model.dart';
 
-/// Client wrapper for the Cloud Function AI endpoints. The Gemini key never
-/// touches the device — see docs/01-ARCHITECTURE.md §1.
+/// Client wrapper for the Supabase Edge Function AI endpoints
+/// (`supabase/functions/*`). The Gemini key never touches the device — see
+/// docs/01-ARCHITECTURE.md §1.
 class GeminiClient {
-  GeminiClient(this._functions);
-  final FirebaseFunctions _functions;
+  GeminiClient(this._client);
+  final SupabaseClient _client;
 
   Future<Map<String, dynamic>> extractRoom({
     required List<Map<String, String>> images, // {base64, mimeType, target}
     Map<String, dynamic>? arDimensions,
   }) =>
-      _call('extractRoom', {
+      _call('extract-room', {
         'images': images,
         if (arDimensions != null) 'arDimensions': arDimensions,
       });
 
   Future<AnalysisResult> analyzeRoom(RoomModel room,
       {Map<String, dynamic>? profile, String region = 'PH'}) async {
-    final data = await _call('analyzeRoom', {
+    final data = await _call('analyze-room', {
       'room': room.toJson(),
       if (profile != null) 'profile': profile,
       'region': region,
@@ -35,7 +36,7 @@ class GeminiClient {
       {required String style,
       String tier = 'medium',
       String region = 'PH'}) async {
-    final data = await _call('generateDesign', {
+    final data = await _call('generate-design', {
       'room': room.toJson(),
       'style': style,
       'tier': tier,
@@ -49,7 +50,7 @@ class GeminiClient {
     required List<Map<String, String>> history, // {role, text}
     RoomModel? room,
   }) async {
-    final data = await _call('chatAssistant', {
+    final data = await _call('chat-assistant', {
       'message': message,
       'history': history,
       if (room != null) 'room': room.toJson(),
@@ -60,22 +61,19 @@ class GeminiClient {
   Future<Map<String, dynamic>> _call(
       String name, Map<String, dynamic> payload) async {
     try {
-      final result = await _functions
-          .httpsCallable(name,
-              options: HttpsCallableOptions(
-                  timeout: const Duration(seconds: 120)))
-          .call<dynamic>(payload);
-      return _deepConvert(result.data) as Map<String, dynamic>;
-    } on FirebaseFunctionsException catch (e) {
-      throw mapFunctionsError('${e.code} ${e.message}');
+      final response = await _client.functions
+          .invoke(name, body: payload)
+          .timeout(const Duration(seconds: 120));
+      final data = _deepConvert(response.data);
+      if (data is! Map<String, dynamic>) throw const AiFailure();
+      return data;
     } catch (e) {
-      throw mapFunctionsError(e);
+      throw mapError(e);
     }
   }
 
-  /// Mobile platform channels decode nested JSON as `Map<Object?, Object?>` /
-  /// `List<Object?>`, not the `Map<String, dynamic>` the model factories
-  /// expect — recursively normalize before any `as Map<String, dynamic>` cast.
+  /// Normalizes decoded JSON to `Map<String, dynamic>` / `List<dynamic>` so
+  /// the model factories' `as Map<String, dynamic>` casts always hold.
   dynamic _deepConvert(dynamic value) {
     if (value is Map) {
       return value.map((k, v) => MapEntry(k.toString(), _deepConvert(v)));
@@ -87,5 +85,5 @@ class GeminiClient {
   }
 }
 
-final geminiClientProvider = Provider<GeminiClient>(
-    (ref) => GeminiClient(FirebaseFunctions.instance));
+final geminiClientProvider =
+    Provider<GeminiClient>((ref) => GeminiClient(Supabase.instance.client));

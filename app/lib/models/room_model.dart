@@ -160,6 +160,22 @@ class RoomModel {
   double get freeFloorPct =>
       floorAreaM2 == 0 ? 0 : math.max(0, 1 - occupiedFloorM2 / floorAreaM2);
 
+  RoomModel copyWith({List<String>? photoPaths}) => RoomModel(
+        id: id,
+        projectId: projectId,
+        version: version,
+        roomType: roomType,
+        dimensionSource: dimensionSource,
+        dimensions: dimensions,
+        floorPolygon: floorPolygon,
+        openings: openings,
+        furniture: furniture,
+        materials: materials,
+        lightingObservation: lightingObservation,
+        assumptions: assumptions,
+        photoPaths: photoPaths ?? this.photoPaths,
+      );
+
   Map<String, dynamic> toJson() => {
         'version': version,
         'roomType': roomType,
