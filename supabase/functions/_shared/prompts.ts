@@ -2,7 +2,14 @@
  * All Gemini prompts + response schemas. Versioned so cached responses can be
  * invalidated when a prompt changes.
  */
-export const PROMPT_VERSION = 1;
+export const PROMPT_VERSION = 2;
+
+/** Allow-lists mirrored from app/lib/core/constants/app_constants.dart. */
+export const DESIGN_STYLES = [
+  "Minimalist", "Modern", "Industrial", "Scandinavian", "Japandi", "Luxury",
+  "Classic", "Bohemian", "Farmhouse", "Contemporary", "Tropical", "Coastal",
+];
+export const BUDGET_TIERS = ["low", "medium", "premium", "luxury"];
 
 const score = { type: "integer", minimum: 0, maximum: 100 } as const;
 const conf = { type: "number", minimum: 0, maximum: 1 } as const;
