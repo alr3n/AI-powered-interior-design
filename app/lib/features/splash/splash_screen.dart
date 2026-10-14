@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Animated splash. The router's auth redirect moves the user on as soon as
-/// the Firebase auth state resolves — no manual navigation needed here.
+/// the auth state resolves — no manual navigation needed here.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 

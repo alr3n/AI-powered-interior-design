@@ -33,18 +33,33 @@ abstract class Routes {
 }
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  // Build the router ONCE and re-run its redirects when auth changes. (Watching
+  // the auth provider here would recreate the router — and reset navigation
+  // back to the splash screen — on every auth event.)
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authStateProvider, (_, __) => refresh.value++);
+  ref.onDispose(refresh.dispose);
 
-  return GoRouter(
+  final router = GoRouter(
     initialLocation: Routes.splash,
+    refreshListenable: refresh,
     redirect: (context, state) {
+      // The OAuth deep link (io.supabase.spacesense://login-callback/?code=…)
+      // is also delivered to the router as a location. supabase_flutter
+      // consumes it separately; just send the router back to the splash,
+      // which redirects on to login / home once the session is known.
+      if (state.uri.host == 'login-callback' ||
+          state.uri.path.contains('login-callback')) {
+        return Routes.splash;
+      }
+      final authState = ref.read(authStateProvider);
       // Still resolving auth → stay on splash.
       if (authState.isLoading) return null;
       final signedIn = authState.valueOrNull != null;
-      final onAuthPages = state.matchedLocation == Routes.login ||
-          state.matchedLocation == Routes.splash;
-      if (!signedIn && !onAuthPages) return Routes.login;
-      if (signedIn && onAuthPages) return Routes.home;
+      final loc = state.matchedLocation;
+      // Signed out → login (including from the splash, which used to hang).
+      if (!signedIn) return loc == Routes.login ? null : Routes.login;
+      if (loc == Routes.login || loc == Routes.splash) return Routes.home;
       return null;
     },
     routes: [
@@ -84,4 +99,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       body: Center(child: Text('Page not found: ${state.uri}')),
     ),
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
