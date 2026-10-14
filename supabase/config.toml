@@ -1,0 +1,16 @@
+# Supabase CLI config (local development + function deploy settings).
+project_id = "spacesense-ai"
+
+[auth]
+enable_anonymous_sign_ins = true
+enable_manual_linking = true
+additional_redirect_urls = ["io.supabase.spacesense://login-callback/"]
+
+[functions.extract-room]
+verify_jwt = false   # the function verifies the user token itself (see _shared/http.ts)
+[functions.analyze-room]
+verify_jwt = false
+[functions.generate-design]
+verify_jwt = false
+[functions.chat-assistant]
+verify_jwt = false
