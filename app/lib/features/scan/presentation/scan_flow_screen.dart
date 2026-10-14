@@ -51,8 +51,14 @@ class _ScanFlowScreenState extends ConsumerState<ScanFlowScreen> {
   Future<void> _capture() async {
     final cam = _camera;
     if (cam == null || cam.value.isTakingPicture) return;
-    final file = await cam.takePicture();
-    ref.read(scanControllerProvider.notifier).addShot(file.path);
+    try {
+      final file = await cam.takePicture();
+      ref.read(scanControllerProvider.notifier).addShot(file.path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not take the photo. Try again.')));
+    }
   }
 
   @override
@@ -261,12 +267,16 @@ class _FinishScanViewState extends ConsumerState<_FinishScanView> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    if (!_useAiDims) {
-      ref.read(scanControllerProvider.notifier).setDimensions(
-            double.parse(_length.text),
-            double.parse(_width.text),
-            double.parse(_height.text),
-          );
+    final scan = ref.read(scanControllerProvider.notifier);
+    if (_useAiDims) {
+      // The user may have submitted measured values earlier, then switched.
+      scan.clearDimensions();
+    } else {
+      scan.setDimensions(
+        double.parse(_length.text),
+        double.parse(_width.text),
+        double.parse(_height.text),
+      );
     }
     ref
         .read(scanSubmitProvider.notifier)

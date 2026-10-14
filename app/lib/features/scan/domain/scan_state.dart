@@ -38,7 +38,8 @@ class ScanSession {
 
   ScanTarget get currentTarget => ScanTarget.values[currentIndex];
   bool get isComplete => currentIndex >= ScanTarget.values.length;
-  double get progress => shots.length / ScanTarget.values.length;
+  /// Counts skipped targets too, so skipping windows/doors still reaches 100%.
+  double get progress => (currentIndex / ScanTarget.values.length).clamp(0, 1);
 
   bool captured(ScanTarget t) => shots.any((s) => s.target == t);
 
@@ -46,10 +47,13 @@ class ScanSession {
     List<CapturedShot>? shots,
     int? currentIndex,
     Map<String, double>? manualDimensions,
+    bool clearManualDimensions = false,
   }) =>
       ScanSession(
         shots: shots ?? this.shots,
         currentIndex: currentIndex ?? this.currentIndex,
-        manualDimensions: manualDimensions ?? this.manualDimensions,
+        manualDimensions: clearManualDimensions
+            ? null
+            : (manualDimensions ?? this.manualDimensions),
       );
 }

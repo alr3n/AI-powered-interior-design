@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,9 +27,12 @@ class ScanController extends AutoDisposeNotifier<ScanSession> {
 
   void retakeLast() {
     if (state.shots.isEmpty) return;
+    // Jump back to the removed shot's own target — indexes are not 1:1 with
+    // shots once windows/doors have been skipped.
+    final last = state.shots.last;
     state = state.copyWith(
       shots: state.shots.sublist(0, state.shots.length - 1),
-      currentIndex: math.max(0, state.currentIndex - 1),
+      currentIndex: ScanTarget.values.indexOf(last.target),
     );
   }
 
@@ -40,6 +43,10 @@ class ScanController extends AutoDisposeNotifier<ScanSession> {
       state = state.copyWith(currentIndex: state.currentIndex + 1);
     }
   }
+
+  /// Forget previously entered dimensions (the user switched to AI estimates).
+  void clearDimensions() =>
+      state = state.copyWith(clearManualDimensions: true);
 
   void setDimensions(double lengthM, double widthM, double heightM) {
     state = state.copyWith(manualDimensions: {
@@ -53,8 +60,9 @@ class ScanController extends AutoDisposeNotifier<ScanSession> {
 final scanControllerProvider =
     AutoDisposeNotifierProvider<ScanController, ScanSession>(ScanController.new);
 
-/// Submits the scan: compress → base64 → extractRoom function → RoomModel →
-/// Firestore. Returns the new project id.
+/// Submits the scan: compress → base64 → extract-room function → RoomModel →
+/// Postgres, with the photos copied to Supabase Storage. Returns the new
+/// project id.
 class ScanSubmitController extends AutoDisposeAsyncNotifier<String?> {
   @override
   Future<String?> build() async => null;
@@ -71,6 +79,7 @@ class ScanSubmitController extends AutoDisposeAsyncNotifier<String?> {
 
       // Compress + encode (capped at maxScanShots to bound payload size).
       final images = <Map<String, String>>[];
+      final photoBytes = <String, Uint8List>{}; // target name -> jpeg
       for (final shot in session.shots.take(AppConstants.maxScanShots)) {
         final bytes = await FlutterImageCompress.compressWithFile(
           shot.filePath,
@@ -79,6 +88,7 @@ class ScanSubmitController extends AutoDisposeAsyncNotifier<String?> {
           quality: AppConstants.jpegQuality,
         );
         if (bytes == null) continue;
+        photoBytes[shot.target.name] = bytes;
         images.add({
           'base64': base64Encode(bytes),
           'mimeType': 'image/jpeg',
@@ -93,7 +103,12 @@ class ScanSubmitController extends AutoDisposeAsyncNotifier<String?> {
         arDimensions: session.manualDimensions,
       );
 
-      final projectId = await repo.createProject(projectName, roomType);
+      final String projectId;
+      try {
+        projectId = await repo.createProject(projectName, roomType);
+      } catch (e) {
+        throw mapError(e);
+      }
 
       final dims = session.manualDimensions != null
           ? RoomDimensions(
@@ -127,9 +142,26 @@ class ScanSubmitController extends AutoDisposeAsyncNotifier<String?> {
         assumptions: ((extraction['assumptions'] as List<dynamic>?) ?? [])
             .map((e) => e.toString())
             .toList(),
-        photoPaths: session.shots.map((s) => s.filePath).toList(),
+        // Filled in below once the photos are in Storage.
+        photoPaths: const [],
       );
-      await repo.saveRoom(room);
+
+      try {
+        // Keep the originals in Storage; local temp paths die with the cache.
+        final paths = <String>[];
+        for (final entry in photoBytes.entries) {
+          final path =
+              await repo.uploadScanPhoto(projectId, entry.key, entry.value);
+          if (path != null) paths.add(path);
+        }
+        await repo.saveRoom(room.copyWith(photoPaths: paths));
+      } catch (e) {
+        // Don't leave an empty project behind if the room could not be saved.
+        try {
+          await repo.deleteProject(projectId);
+        } catch (_) {}
+        throw mapError(e);
+      }
 
       // Best-effort local cleanup of temp captures.
       for (final shot in session.shots) {
