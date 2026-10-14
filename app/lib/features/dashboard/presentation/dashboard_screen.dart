@@ -68,7 +68,7 @@ class DashboardScreen extends ConsumerWidget {
 class _DesignTipCard extends StatelessWidget {
   const _DesignTipCard();
 
-  // v1 ships a static rotation; wire to Firestore designTips next sprint.
+  // v1 ships a static rotation; the `design_tips` table can replace this rotation later.
   static const _tips = [
     'Anchor a seating area with a rug at least 20 cm wider than the sofa.',
     'Layer three light sources per room: ambient, task, and accent.',

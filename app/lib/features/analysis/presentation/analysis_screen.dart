@@ -12,9 +12,10 @@ class AnalysisController
     extends AutoDisposeFamilyAsyncNotifier<AnalysisResult?, String> {
   @override
   Future<AnalysisResult?> build(String projectId) async {
-    // Show the stored analysis if one exists; user can regenerate.
-    final stream = ref.watch(latestAnalysisProvider(projectId));
-    return stream.valueOrNull;
+    // Seed with the stored analysis (waiting for it, so the empty state does
+    // not flash while loading). `read`, not `watch`: later stream events must
+    // not clobber a run in progress; `run()` sets the state itself.
+    return ref.read(latestAnalysisProvider(projectId).future);
   }
 
   Future<void> run() async {

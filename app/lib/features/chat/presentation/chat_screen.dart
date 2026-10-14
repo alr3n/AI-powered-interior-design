@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/errors/failures.dart';
 import '../../../models/room_model.dart';
 import '../../../services/gemini_client.dart';
 import '../../projects/data/project_repository.dart';
@@ -14,9 +15,17 @@ class ChatMessage {
 /// Chat state: message list + optional room context (most recent project).
 class ChatController extends AutoDisposeNotifier<List<ChatMessage>> {
   bool sending = false;
+  bool _disposed = false;
 
   @override
-  List<ChatMessage> build() => const [
+  List<ChatMessage> build() {
+    // A reply can arrive after the user left the screen; never write state
+    // into a disposed notifier.
+    ref.onDispose(() => _disposed = true);
+    return _greeting;
+  }
+
+  static const _greeting = [
         ChatMessage(
             role: 'model',
             text:
@@ -37,9 +46,11 @@ class ChatController extends AutoDisposeNotifier<List<ChatMessage>> {
             history: history.sublist(0, history.length - 1),
             room: room,
           );
+      if (_disposed) return;
       state = [...state, ChatMessage(role: 'model', text: reply)];
     } catch (e) {
-      state = [...state, ChatMessage(role: 'model', text: e.toString())];
+      if (_disposed) return;
+      state = [...state, ChatMessage(role: 'model', text: mapError(e).message)];
     } finally {
       sending = false;
     }
@@ -76,14 +87,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  void _send(String text) {
+  Future<void> _send(String text) async {
+    if (text.trim().isEmpty) return;
+    _input.clear();
     RoomModel? room;
     final pid = _contextProjectId;
     if (pid != null) {
-      room = ref.read(latestRoomProvider(pid)).valueOrNull;
+      // Wait for the room to load: a plain `read(...).valueOrNull` is null the
+      // first time a project is selected, so the AI silently lost its context.
+      try {
+        room = await ref.read(latestRoomProvider(pid).future);
+      } catch (_) {
+        room = null;
+      }
+      if (!mounted) return;
     }
     ref.read(chatControllerProvider.notifier).send(text, room: room);
-    _input.clear();
     Future.delayed(const Duration(milliseconds: 300), () {
       if (_scroll.hasClients) {
         _scroll.animateTo(_scroll.position.maxScrollExtent,
@@ -106,7 +125,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: DropdownButton<String>(
-                value: _contextProjectId,
+                value: projects.any((p) => p.id == _contextProjectId)
+                    ? _contextProjectId
+                    : null,
                 hint: const Text('Room context'),
                 underline: const SizedBox.shrink(),
                 items: [
@@ -182,12 +203,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       decoration: const InputDecoration(
                           hintText: 'Ask about your room…'),
                       textInputAction: TextInputAction.send,
-                      onSubmitted: _send,
+                      onSubmitted: (t) => _send(t),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
                     onPressed: () => _send(_input.text),
+                    tooltip: 'Send',
                     icon: const Icon(Icons.arrow_upward),
                   ),
                 ],

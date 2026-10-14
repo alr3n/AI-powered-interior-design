@@ -2,8 +2,8 @@ import '../../../models/room_model.dart';
 import '../../quantities/domain/quantity_calculator.dart';
 
 /// Deterministic cost estimation from quantities × regional unit rates.
-/// Rates default to Philippine market values (PHP); production reads them
-/// from Firestore `costCatalog/{region}` so they update without a release.
+/// Rates default to Philippine market values (PHP); the same table is seeded in the
+/// `cost_catalog` Postgres table (supabase/seed.sql) for server-side prompts.
 class CostEstimator {
   const CostEstimator({this.rates = philippineRates});
   final Map<String, Map<String, double>> rates;

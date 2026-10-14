@@ -28,6 +28,9 @@ class ReportScreen extends ConsumerWidget {
           final designs =
               ref.watch(designsProvider(projectId)).valueOrNull ?? [];
           final tier = ref.watch(settingsProvider).budgetTier;
+          final projectName =
+              ref.watch(projectProvider(projectId)).valueOrNull?.name ??
+                  'SpaceSense project';
           final cost = const CostEstimator().estimate(r, tier: tier);
 
           // Live preview + native print/share sheet via `printing`.
@@ -36,7 +39,7 @@ class ReportScreen extends ConsumerWidget {
             pdfFileName:
                 'spacesense_report_${DateTime.now().millisecondsSinceEpoch}.pdf',
             build: (_) => PdfReportService().build(
-              projectName: 'SpaceSense project',
+              projectName: projectName,
               room: r,
               analysis: analysis,
               designs: designs,

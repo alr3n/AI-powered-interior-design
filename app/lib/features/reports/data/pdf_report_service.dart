@@ -10,7 +10,7 @@ import '../../../models/room_model.dart';
 import '../../cost/domain/cost_estimator.dart';
 import '../../quantities/domain/quantity_calculator.dart';
 
-/// Composes the professional project report locally with the `pdf` package —
+/// Composes the professional project report locally with the `pdf` package -
 /// no server round-trip, works offline once data is loaded.
 class PdfReportService {
   final _php = NumberFormat.currency(symbol: 'PHP ', decimalDigits: 0);
@@ -79,7 +79,7 @@ class PdfReportService {
 
         // ---- Analysis -------------------------------------------------
         if (analysis != null) ...[
-          _h('AI interior analysis — score ${analysis.overallScore}/100'),
+          _h('AI interior analysis - score ${analysis.overallScore}/100'),
           _table([
             ['Category', 'Score'],
             ...analysis.categoryScores.entries.map((e) => [
@@ -93,7 +93,7 @@ class PdfReportService {
           ...analysis.weaknesses.map(_bullet),
           _h2('Recommendations'),
           ...analysis.recommendations.map((r) => _bullet(
-              '[${r.priority.toUpperCase()}] ${r.title} — ${r.detail}'
+              '[${r.priority.toUpperCase()}] ${r.title} - ${r.detail}'
               '${r.estCost != null ? ' (~${_php.format(r.estCost)})' : ''}')),
         ],
 
@@ -106,12 +106,12 @@ class PdfReportService {
           ['Skirting', '${q.skirtingLengthM().toStringAsFixed(2)} m'],
         ]),
         pw.Text(
-            'Estimates for planning only — verify on site. Not a code-compliance review.',
+            'Estimates for planning only - verify on site. Not a code-compliance review.',
             style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
 
         // ---- Cost ------------------------------------------------------
         if (cost != null) ...[
-          _h('Cost estimate — ${cost.tier} tier'),
+          _h('Cost estimate - ${cost.tier} tier'),
           _table([
             ['Category', 'Qty', 'Total'],
             ...cost.lines.map((l) => [
@@ -146,7 +146,7 @@ class PdfReportService {
                                   height: 16,
                                   margin: const pw.EdgeInsets.only(
                                       right: 4, top: 4),
-                                  color: PdfColor.fromHex(p.hex),
+                                  color: _safeColor(p.hex),
                                 ))
                             .toList()),
                     pw.Text(
@@ -166,6 +166,14 @@ class PdfReportService {
     ));
 
     return doc.save();
+  }
+
+  /// Gemini can return malformed hex strings; never let one crash the report.
+  PdfColor _safeColor(String hex) {
+    final h = hex.replaceAll('#', '').trim();
+    return RegExp(r'^[0-9a-fA-F]{6}$').hasMatch(h)
+        ? PdfColor.fromHex(h)
+        : PdfColors.grey400;
   }
 
   pw.Widget _h(String text) => pw.Padding(
