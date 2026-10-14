@@ -1,11 +1,12 @@
-# Node / Firebase Functions
-functions/node_modules/
-functions/lib/
-functions/.env
-functions/*.log
-firebase-debug.log
-firebase-debug.*.log
-.firebase/
+# Supabase
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+supabase/.env.local
+supabase/functions/.env
+
+# Flutter local env overrides (publishable key defaults live in code)
+app/env.json
 
 # Editors
 .idea/

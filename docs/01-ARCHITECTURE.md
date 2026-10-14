@@ -6,20 +6,21 @@
 ┌─────────────────────────── Flutter App ───────────────────────────┐
 │ Presentation (screens, widgets, Riverpod controllers)             │
 │ Domain (entities, repository interfaces, use-case logic)          │
-│ Data (Firebase repos, callable-function AI client, local cache)   │
+│ Data (Supabase repos, Edge-Function AI client, local cache)       │
 └───────┬───────────────┬──────────────────┬────────────────────────┘
-        │ Auth          │ Firestore/Storage│ Callable Functions
+        │ Auth          │ Postgres/Storage │ Edge Functions
         ▼               ▼                  ▼
-  Firebase Auth    Firestore + Storage   Cloud Functions (TS)
-                                          │  App Check + rate limit
+  Supabase Auth    Postgres (RLS) +     Edge Functions (Deno/TS)
+                   Storage + Realtime     │  JWT check + rate limit
                                           ▼
                                      Gemini API
                               (2.5 Flash fast / 2.5 Pro reports)
 ```
 
 **Key decision: Gemini is never called from the device.** The API key lives in
-Secret Manager; callable functions validate auth, enforce App Check, rate-limit
-per user, cache responses in Firestore, and return structured JSON. This is the
+Supabase secrets; Edge Functions verify the caller's JWT, rate-limit per user
+(Postgres `consume_ai_call`), cache responses in the `ai_cache` table, and
+return structured JSON. This is the
 only architecture that survives a production release — client-embedded keys are
 extracted within hours of publishing an APK.
 
@@ -27,15 +28,15 @@ extracted within hours of publishing an APK.
 
 ```
 features/<feature>/
-  domain/        entities + abstract repositories (pure Dart, no Flutter/Firebase imports)
-  data/          repository implementations (Firestore, Functions, camera, ARCore)
+  domain/        entities + abstract repositories (pure Dart, no Flutter/Supabase imports)
+  data/          repository implementations (Supabase, Edge Functions, camera, ARCore)
   presentation/  screens, widgets, Riverpod providers/controllers
 ```
 
 Dependency rule: presentation → domain ← data. Data implements domain
 interfaces; providers wire them (`authRepositoryProvider` returns
-`FirebaseAuthRepository` as `AuthRepository`). Swapping Firebase for Supabase
-later touches only `data/`.
+`SupabaseAuthRepository` as `AuthRepository`). Swapping the backend touches
+only `data/` (the app moved from Firebase to Supabase this way).
 
 Why Riverpod over Bloc: compile-safe DI + reactive state in one tool; providers
 compose (analysis controller watches room provider watches auth provider) without
@@ -48,7 +49,7 @@ ShellRoute for the bottom-nav shell.
 
 ```
 lib/
-  main.dart                     bootstrap: Firebase init, ProviderScope
+  main.dart                     bootstrap: Supabase init, ProviderScope
   app.dart                      MaterialApp.router, themes
   core/
     constants/app_constants.dart
@@ -70,7 +71,7 @@ lib/
     reports/      PDF generation
     settings/     theme mode, currency, region multiplier
   models/         shared cross-feature entities (RoomModel, FurnitureItem, ...)
-  services/       GeminiClient (callable wrapper), StorageService, CacheService
+  services/       GeminiClient (Edge Function wrapper), StorageService, CacheService
 ```
 
 Shared `models/` + `services/` sit beside features because Room entities are used
@@ -86,10 +87,10 @@ slight layering compromise.
    floor corners; we compute wall lengths + floor polygon; ceiling height from a
    floor-to-ceiling two-tap measure. These *measured* dimensions override AI
    estimates.
-3. **Gemini vision pass** (Cloud Function): images + measured dims → structured
+3. **Gemini vision pass** (Edge Function): images + measured dims → structured
    JSON: room type, dimension estimates (reconciled with AR data), furniture
    inventory with approximate sizes, materials with confidence, openings, lighting.
-4. **RoomModel** persisted to Firestore + local cache; photos to Storage.
+4. **RoomModel** persisted to Postgres (`rooms`); photos to Supabase Storage.
 
 Full 3D mesh reconstruction is deliberately v2 (see 05 doc): on-device
 photogrammetry is the highest-risk item and the AI analysis value chain doesn't
@@ -103,7 +104,7 @@ depend on it.
 | Full interior analysis report, design concepts | gemini-2.5-pro | reasoning depth |
 | All calls | responseSchema JSON mode | deterministic parsing |
 
-Responses cached in `aiCache/{hash(roomVersion+task)}`; a room re-analysis is
+Responses cached in `ai_cache` (key = hash of prompt version + task + payload); a room re-analysis is
 only billed when the room model changed.
 
 ## 6. Error handling
@@ -113,25 +114,29 @@ only billed when the room model changed.
   never sees raw exceptions.
 - Every AsyncNotifier exposes `AsyncValue`; `AsyncValueView` widget renders
   loading/skeleton, error with retry, and data uniformly.
-- Cloud Functions return typed error codes (`resource-exhausted` for rate limit,
-  `failed-precondition` for missing scan data) that the client maps to friendly
-  copy.
+- Edge Functions return `{ error: { code, message } }` with an HTTP status
+  (429 `resource-exhausted` for the rate limit, 400 `failed-precondition` for
+  missing scan data) that the client maps to friendly copy.
 
 ## 7. Performance
 
 - Image compression before upload (flutter_image_compress), thumbnails via
-  Storage resize extension.
-- AI response caching (Firestore + in-memory).
+  Storage image transformations.
+- AI response caching (Postgres `ai_cache`).
 - Lazy route loading; `ListView.builder` everywhere; `cached_network_image`.
 - Heavy JSON parsing via `compute()` isolates.
 
 ## 8. Security
 
-- Gemini key: Secret Manager only.
-- Firestore rules: strict per-owner access (see firebase/firestore.rules).
-- Storage rules: path-scoped `users/{uid}/**`, content-type + 10 MB validation.
-- App Check (Play Integrity) on callable functions.
-- Rate limit: 30 AI calls/user/hour (Firestore counter, transactional).
+- Gemini key: Supabase secret only (`supabase secrets set GEMINI_API_KEY=…`).
+- Row Level Security on every table: strict per-owner access (see
+  `supabase/migrations`). `ai_cache` / `ai_usage` have no policies at all, so
+  only the service role can touch them.
+- Storage policies: bucket `scan-photos`, path-scoped `<uid>/…`, image MIME types
+  + 10 MB limit.
+- Only the publishable key ships in the app; the service-role key exists only
+  inside Edge Functions.
+- Rate limit: 30 AI calls/user/hour (atomic Postgres function).
 - Local sensitive prefs via flutter_secure_storage.
 
 ## 9. SOLID in practice

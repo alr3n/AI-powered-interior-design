@@ -11,7 +11,7 @@ so outputs parse deterministically — no regex extraction, no retry-on-malforme
    `"source":"ar_measured"` so it treats them as ground truth, not estimates.
 2. **Model routing.** Flash for vision extraction/chat (latency), Pro for the
    13-category analysis and design concepts (reasoning).
-3. **Grounded numbers.** Cost figures come from `costCatalog` rates injected
+3. **Grounded numbers.** Cost figures come from `cost_catalog` rates injected
    into the prompt; Gemini allocates, it does not invent unit prices.
 4. **Refusal rails.** System prompts forbid claiming code compliance, structural
    safety certification, or exact measurements from photos alone.
