@@ -1,12 +1,16 @@
-/// Domain-level auth contract. Presentation depends on this, never on
-/// FirebaseAuth directly (Dependency Inversion).
+/// Domain-level auth contract. Presentation depends on this, never on the
+/// Supabase SDK directly (Dependency Inversion).
+///
+/// Actions return nothing: the resulting session is observed through
+/// [authStateChanges]. (Google sign-in completes in the browser and returns
+/// through a deep link, so there is no user to hand back at call time.)
 abstract class AuthRepository {
   Stream<AppUser?> authStateChanges();
   AppUser? get currentUser;
-  Future<AppUser> signInWithGoogle();
-  Future<AppUser> signInWithEmail(String email, String password);
-  Future<AppUser> registerWithEmail(String email, String password);
-  Future<AppUser> signInAsGuest();
+  Future<void> signInWithGoogle();
+  Future<void> signInWithEmail(String email, String password);
+  Future<void> registerWithEmail(String email, String password);
+  Future<void> signInAsGuest();
   Future<void> signOut();
 }
 

@@ -1,12 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../data/firebase_auth_repository.dart';
+import '../data/supabase_auth_repository.dart';
 import '../domain/auth_repository.dart';
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) =>
-    FirebaseAuthRepository(FirebaseAuth.instance, FirebaseFirestore.instance));
+final authRepositoryProvider = Provider<AuthRepository>(
+    (ref) => SupabaseAuthRepository(Supabase.instance.client));
 
 final authStateProvider = StreamProvider<AppUser?>(
     (ref) => ref.watch(authRepositoryProvider).authStateChanges());
@@ -19,7 +18,7 @@ class AuthController extends AutoDisposeAsyncNotifier<void> {
   @override
   Future<void> build() async {}
 
-  Future<void> _run(Future<AppUser> Function(AuthRepository) action) async {
+  Future<void> _run(Future<void> Function(AuthRepository) action) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await action(ref.read(authRepositoryProvider));
